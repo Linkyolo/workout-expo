@@ -15,11 +15,8 @@ import {
 } from "amazon-cognito-identity-js";
 import * as SecureStore from "expo-secure-store";
 import { setSessionExpiredHandler } from "../api/client";
+import Constants from 'expo-constants';
 
-// ── Cognito config ────────────────────────────────────────────────────────────
-
-const USER_POOL_ID = process.env.EXPO_PUBLIC_USER_POOL_ID!;
-const CLIENT_ID = process.env.EXPO_PUBLIC_COGNITO_CLIENT_ID!;
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE!;
 
 // client.ts
@@ -27,10 +24,30 @@ const ID_TOKEN_KEY = "workout_id_token";
 const REFRESH_TOKEN_KEY = "workout_refresh_token";
 const USERNAME_KEY = "workout_username";
 
-const userPool = new CognitoUserPool({
-	UserPoolId: USER_POOL_ID,
-	ClientId: CLIENT_ID,
-});
+// ── Cognito config ────────────────────────────────────────────────────────────
+const getConfig = () => {
+	const userPoolId = Constants.expoConfig?.extra?.userPoolId;
+	const clientId = Constants.expoConfig?.extra?.clientId;
+
+	if (!userPoolId || !clientId) {
+		throw new Error(`Missing Cognito config — poolId: ${userPoolId}, clientId: ${clientId}`);
+	}
+
+	return { userPoolId, clientId };
+};
+
+let _userPool: CognitoUserPool | null = null;
+
+export const getUserPool = (): CognitoUserPool => {
+	if (!_userPool) {
+		const { userPoolId, clientId } = getConfig();
+		_userPool = new CognitoUserPool({
+			UserPoolId: userPoolId,
+			ClientId: clientId,
+		});
+	}
+	return _userPool;
+};
 
 // ── JWT helper ────────────────────────────────────────────────────────────────
 
@@ -51,7 +68,7 @@ function cognitoLogin(
 	password: string
 ): Promise<{ idToken: string; refreshToken: string }> {
 	return new Promise((resolve, reject) => {
-		const cognitoUser = new CognitoUser({ Username: email, Pool: userPool });
+		const cognitoUser = new CognitoUser({ Username: email, Pool: getUserPool() });
 		const authDetails = new AuthenticationDetails({ Username: email, Password: password });
 
 		cognitoUser.authenticateUser(authDetails, {
@@ -82,7 +99,7 @@ function cognitoRegister(
 			new CognitoUserAttribute({ Name: "name", Value: displayName }),
 		];
 
-		userPool.signUp(email, password, attributes, [], (err, result) => {
+		getUserPool().signUp(email, password, attributes, [], (err, result) => {
 			if (err || !result) {
 				reject(new Error(err?.message ?? "Registration failed"));
 			} else {
@@ -94,7 +111,7 @@ function cognitoRegister(
 
 function cognitoConfirm(email: string, code: string): Promise<void> {
 	return new Promise((resolve, reject) => {
-		const cognitoUser = new CognitoUser({ Username: email, Pool: userPool });
+		const cognitoUser = new CognitoUser({ Username: email, Pool: getUserPool() });
 
 		cognitoUser.confirmRegistration(code, true, (err) => {
 			if (err) {
@@ -108,7 +125,7 @@ function cognitoConfirm(email: string, code: string): Promise<void> {
 
 function refreshIdToken(username: string, refreshToken: string): Promise<string> {
 	return new Promise((resolve, reject) => {
-		const cognitoUser = new CognitoUser({ Username: username, Pool: userPool });
+		const cognitoUser = new CognitoUser({ Username: username, Pool: getUserPool() });
 		const token = new CognitoRefreshToken({ RefreshToken: refreshToken });
 
 		cognitoUser.refreshSession(token, (err, session) => {
