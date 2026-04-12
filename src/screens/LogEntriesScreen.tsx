@@ -13,13 +13,14 @@ import {
 } from "react-native-paper";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useAuth } from "../auth/AuthContext";
-import { addEntry, addRoute, deleteRoute } from "../api/client";
+import { addEntry, addRoute, deleteRoute, updateEntry, deleteEntry } from "../api/client";
 import { LogEntriesNavProp, LogEntriesRouteProp } from "../navigation/types";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type SetRow = {
   key: string;
+  entryId?: string;   // undefined = new row, set = loaded from DB
   reps: string;
   weightKg: string;
   durationMins: string;
@@ -244,13 +245,15 @@ export function LogEntriesScreen() {
 
   const { workoutId, weId, exerciseName, trackingType, existingRoutes, existingEntries } = route.params;
 
+  console.log("existingEntries", existingEntries)
   const isSessionBased = trackingType === "running" || trackingType === "freestyle";
   const isClimbing = trackingType === "climbing";
 
   const [rows, setRows] = useState<SetRow[]>(() => {
-    if (!isClimbing && !isSessionBased && existingEntries && existingEntries.length > 0) {
+    if (!isClimbing && existingEntries && existingEntries.length > 0) {
       return existingEntries.map((e) => ({
-        key: String(Date.now() + Math.random()),
+        key: String(e.id),
+        entryId: e.id,
         reps: e.reps != null ? String(e.reps) : "",
         weightKg: e.weightKg != null ? String(e.weightKg) : "",
         durationMins: e.durationSecs != null ? String(Math.floor(e.durationSecs / 60)) : "",
@@ -275,9 +278,13 @@ export function LogEntriesScreen() {
   });
 
   const existingDuration = existingEntries?.find((e) => e.durationSecs != null)?.durationSecs ?? 0;
+
+  console.log("existingDuration", existingDuration)
   const [sessionMins, setSessionMins] = useState(
     existingDuration > 0 ? String(Math.floor(existingDuration / 60)) : ""
   );
+
+  console.log("sessionMins", sessionMins)
   const [sessionSecs, setSessionSecs] = useState(
     existingDuration > 0 ? String(existingDuration % 60) : ""
   );
@@ -301,6 +308,17 @@ export function LogEntriesScreen() {
     }
   }, [token, workoutId, weId]);
 
+  const handleRemoveRow = useCallback(async (row: SetRow) => {
+    if (row.entryId) {
+      try {
+        await deleteEntry(token, workoutId, weId, row.entryId);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to delete set");
+        return;
+      }
+    }
+    setRows((prev) => prev.filter((r) => r.key !== row.key));
+  }, [token, workoutId, weId]);
   async function handleSave() {
     setSaving(true);
     setError(null);
@@ -325,18 +343,26 @@ export function LogEntriesScreen() {
           )
         );
       } else {
+        const buildData = (row: SetRow) => {
+          const data: Parameters<typeof addEntry>[3] = {};
+          if (row.reps) data.reps = parseInt(row.reps, 10);
+          if (row.weightKg) data.weightKg = parseFloat(row.weightKg);
+          if (row.distanceKm) data.distanceKm = parseFloat(row.distanceKm);
+          const mins = row.durationMins ? parseInt(row.durationMins, 10) : 0;
+          const secs = row.durationSecs ? parseInt(row.durationSecs, 10) : 0;
+          const totalSecs = mins * 60 + secs;
+          if (totalSecs > 0) data.durationSecs = totalSecs;
+          return data;
+        };
+
+        const newRows = rows.filter((r) => !r.entryId);
+        const existingRows = rows.filter((r) => !!r.entryId);
+
         await Promise.all(
-          rows.map((row) => {
-            const data: Parameters<typeof addEntry>[3] = {};
-            if (row.reps) data.reps = parseInt(row.reps, 10);
-            if (row.weightKg) data.weightKg = parseFloat(row.weightKg);
-            if (row.distanceKm) data.distanceKm = parseFloat(row.distanceKm);
-            const mins = row.durationMins ? parseInt(row.durationMins, 10) : 0;
-            const secs = row.durationSecs ? parseInt(row.durationSecs, 10) : 0;
-            const totalSecs = mins * 60 + secs;
-            if (totalSecs > 0) data.durationSecs = totalSecs;
-            return addEntry(token, workoutId, weId, data);
-          })
+          newRows.map((row) => addEntry(token, workoutId, weId, buildData(row)))
+        );
+        await Promise.all(
+          existingRows.map((row) => updateEntry(token, workoutId, weId, row.entryId!, buildData(row)))
         );
       }
       navigation.pop(2);
@@ -397,7 +423,7 @@ export function LogEntriesScreen() {
                     icon="minus-circle-outline"
                     size={20}
                     iconColor={theme.colors.error}
-                    onPress={() => setRows((prev) => prev.filter((r) => r.key !== row.key))}
+                    onPress={() => handleRemoveRow(row)}
                   />
                 )}
               </View>

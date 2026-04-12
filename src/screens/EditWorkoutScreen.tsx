@@ -19,8 +19,10 @@ export function EditWorkoutScreen() {
   const navigation = useNavigation<EditWorkoutNavProp>();
   const route = useRoute<EditWorkoutRouteProp>();
 
-  const { workoutId, name: initialName, performedOn: initialDate, notes: initialNotes } = route.params;
+  const { workoutId, name: initialName, performedOn: initialDate, notes: initialNotes, ...rest } = route.params;
 
+  console.log("route.params", route.params)
+  console.log("route.params rest", rest)
   const [name, setName] = useState(initialName);
   const [performedOn, setPerformedOn] = useState(initialDate);
   const [notes, setNotes] = useState(initialNotes ?? "");

@@ -24,6 +24,7 @@ export type ExistingRoute = {
 };
 
 export type ExistingEntry = {
+	id: string;
 	durationSecs: number | null;
 	distanceKm: string | null;
 	reps: number | null;
