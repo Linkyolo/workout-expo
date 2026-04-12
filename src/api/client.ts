@@ -234,3 +234,30 @@ export async function deleteRoute(
 		{ method: "DELETE" }
 	);
 }
+export async function updateEntry(
+	token: string,
+	workoutId: string,
+	weId: string,
+	entryId: string,
+	data: { reps?: number; weightKg?: number; durationSecs?: number; distanceKm?: number }
+): Promise<Entry> {
+	return request<Entry>(
+		`/workouts/${workoutId}/exercises/${weId}/entries/${entryId}`,
+		token,
+		{ method: "PATCH", body: JSON.stringify(data) }
+	);
+}
+
+export async function deleteEntry(
+	token: string,
+	workoutId: string,
+	weId: string,
+	entryId: string
+): Promise<void> {
+	return request<void>(
+		`/workouts/${workoutId}/exercises/${weId}/entries/${entryId}`,
+		token,
+		{ method: "DELETE" }
+	);
+}
+
