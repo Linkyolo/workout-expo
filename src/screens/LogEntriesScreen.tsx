@@ -56,7 +56,8 @@ function emptyRoute(): ClimbingRoute {
   };
 }
 
-const V_GRADES = ["VB", "V0", "V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9", "V10"];
+// const V_GRADES = ["VB", "V0", "V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9", "V10"];
+const V_GRADES = ["100", "120", "140", "160", "180", "200", "220", "240", "260", "280", "300", "320"];
 
 // ── Field renderers ───────────────────────────────────────────────────────────
 
@@ -109,7 +110,7 @@ function RunningFields({ row, onChange }: Omit<RowFieldsProps, "index">) {
 function FreestyleFields({ row, onChange }: Omit<RowFieldsProps, "index">) {
   return (
     <View style={styles.rowFields}>
-      <TextInput label="Duration (sec)" value={row.durationMins} onChangeText={(v) => onChange(row.key, "durationMins", v)} keyboardType="numeric" mode="outlined" style={styles.fieldSmall} dense />
+      <TextInput label="Duration (min)" value={row.durationMins} onChangeText={(v) => onChange(row.key, "durationMins", v)} keyboardType="numeric" mode="outlined" style={styles.fieldSmall} dense />
       <TextInput label="Duration (sec)" value={row.durationSecs} onChangeText={(v) => onChange(row.key, "durationSecs", v)} keyboardType="numeric" mode="outlined" style={styles.fieldMedium} dense />
     </View>
   );
