@@ -10,13 +10,7 @@ EXPO_PUBLIC_COGNITO_CLIENT_ID=
 
 
 ``` shell
-npx eas-cli secret:create --scope project --name EXPO_PUBLIC_API_BASE \
-  --value "EXPO_PUBLIC_API_BASE"
-
-npx eas-cli secret:create --scope project --name EXPO_PUBLIC_USER_POOL_ID \
-  --value "EXPO_PUBLIC_USER_POOL_ID"
-
-npx eas-cli secret:create --scope project --name EXPO_PUBLIC_COGNITO_CLIENT_ID \
-  --value "EXPO_PUBLIC_COGNITO_CLIENT_ID="
-
+npx eas-cli env:create --scope project --name EXPO_PUBLIC_USER_POOL_ID --value "..." --environment preview
+npx eas-cli env:create --scope project --name EXPO_PUBLIC_CLIENT_ID   --value ".." --environment preview
+npx eas-cli env:create --scope project --name EXPO_PUBLIC_API_BASE    --value "..." --environment preview
 ```
